@@ -105,7 +105,7 @@ func Cidr4ToIps(s string) (ips []string, err error) {
 	for _, a := range r[1:5] {
 		i, _ := strconv.Atoi(a)
 		if i > 0xff {
-			err = errors.New("greater than 255")
+			err = errors.New("greater than 0xff")
 			break
 		}
 		var m int
@@ -159,49 +159,83 @@ func Cidr4ToIpsClean(s string) (ips []string, err error) {
 	return
 }
 
-// IpsToCidr example 128.14.32.0, 128.14.47.255 -> 128.14.35.7/20
-func IpsToCidr(firstStr string, lastStr string) (cidr string, err error) {
-	first := strings.Split(firstStr, ".")
-	last := strings.Split(lastStr, ".")
-	var cidrSlice []string
-	d := 0
-	for i := 0; i < 4; i++ {
-		f, _ := strconv.Atoi(first[i])
-		l, _ := strconv.Atoi(last[i])
-		if l < f {
-			err = errors.New("empty")
+// Cidr6ToIps example fe80:0:982:2a5c:0:0:0:ffff/127 -> [fe80:0:982:2a5c:0:0:0:fffe ~ fe80:0:982:2a5c:0:0:0:ffff]
+func Cidr6ToIps(s string) (ips []string, err error) {
+	reIpv4 := regexp.MustCompile(`^(\w{1,4}):(\w{1,4}):(\w{1,4}):(\w{1,4}):(\w{1,4}):(\w{1,4}):(\w{1,4}):(\w{1,4})/(\d{1,3})$`)
+	r := reIpv4.FindStringSubmatch(s)
+	if len(r) != 10 {
+		err = errors.New("format err")
+		return
+	}
+	d, _ := strconv.Atoi(r[9])
+	if d > 128 {
+		err = errors.New("greater than 128")
+		return
+	}
+	var first []int
+	var last []int
+	for _, a := range r[1:9] {
+		i64, _ := strconv.ParseInt(a, 16, 0)
+		i := int(i64)
+		if i > 0xffff {
+			err = errors.New("greater than 0xffff")
 			break
 		}
+		var m int
+		if d >= 16 {
+			m = 0xffff
+		} else if 0 < d && d < 16 {
+			m = 0xffff << (16 - d) & 0xffff
+		} else {
+			m = 0
+		}
 
-		if l == f {
-			cidrSlice = append(cidrSlice, fmt.Sprintf("%d", f))
-			d += 8
+		f := i & m
+		first = append(first, f)
+
+		l := f + (m ^ 0xffff)
+		last = append(last, l)
+		d -= 16
+	}
+
+	if len(first) < 4 {
+		err = errors.New("less than 4")
+		return
+	}
+
+	for v0 := first[0]; v0 <= last[0]; v0++ {
+		for v1 := first[1]; v1 <= last[1]; v1++ {
+			for v2 := first[2]; v2 <= last[2]; v2++ {
+				for v3 := first[3]; v3 <= last[3]; v3++ {
+					for v4 := first[4]; v4 <= last[4]; v4++ {
+						for v5 := first[5]; v5 <= last[5]; v5++ {
+							for v6 := first[6]; v6 <= last[6]; v6++ {
+								for v7 := first[7]; v7 <= last[7]; v7++ {
+									ips = append(ips, fmt.Sprintf("%x:%x:%x:%x:%x:%x:%x:%x", v0, v1, v2, v3, v4, v5, v6, v7))
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	return
+}
+
+// Cidr6ToIpsClean example fe80:0:982:2a5c:0:0:0:ffff/127 -> [fe80:0:982:2a5c:0:0:0:fffe]
+func Cidr6ToIpsClean(s string) (ips []string, err error) {
+	ipsRaw, err := Cidr6ToIps(s)
+	if err != nil {
+		return
+	}
+
+	for _, v := range ipsRaw {
+		last := v[strings.LastIndex(v, ":"):]
+		if last == ":0" || last == ":ffff" {
 			continue
 		}
-
-		m := ^(f ^ l) & 0xff
-		fmt.Printf("f: %d m %d %b\n", f, m, m)
-
-		z := 0xff
-		n := 0
-		for {
-			if m == z {
-				fmt.Printf("d  %d %d %b\n", d, m, m)
-				break
-			}
-			m >>= 1
-			z >>= 1
-			n++
-		}
-		d += 8 - n
-
-		//7
-
-		w := ((^(f ^ l) & 0xff) >> (8 - n)) & 0xff
-		cidrSlice = append(cidrSlice, fmt.Sprintf("%d", w))
-
-		fmt.Printf("%d %d %d %b\n", d, f, l, m)
+		ips = append(ips, v)
 	}
-	cidr = fmt.Sprintf("%s/%d", strings.Join(cidrSlice, "."), d)
 	return
 }

@@ -119,8 +119,68 @@ func TestCidr4ToIpsCleanErr3(t *testing.T) {
 	assert.Equal(t, res, []string(nil))
 }
 
-func TestIpsToCidr(t *testing.T) {
-	res, _ := IpsToCidr("128.14.35.7", "128.14.35.8")
+func TestCidr6ToIps(t *testing.T) {
+	res, err := Cidr6ToIps("fe80:0:982:2a5c:0:0:0:ffff/128")
+	t.Log(res, err)
+	assert.Equal(t, res, []string{"fe80:0:982:2a5c:0:0:0:ffff"})
+}
+
+func TestCidr6ToIps2(t *testing.T) {
+	res, _ := Cidr6ToIps("fe80:0:982:2a5c:0:0:0:ffff/120")
 	t.Log(res)
-	//assert.Equal(t, res, []string{"128.14.35.7"})
+	assert.Equal(t, len(res), 256)
+}
+
+func TestCidr6ToIpsErr(t *testing.T) {
+	res, _ := Cidr6ToIps("fe80:0:982:2a5c:0:0:0:fffff/120")
+	t.Log(res)
+	assert.Equal(t, res, []string(nil))
+}
+
+func TestCidr6ToIpsErr2(t *testing.T) {
+	res, _ := Cidr6ToIps("fe80:0:982:2a5c:0:0:0:ffff/129")
+	t.Log(res)
+	assert.Equal(t, res, []string(nil))
+}
+
+func TestCidr6ToIpsErr3(t *testing.T) {
+	res, _ := Cidr6ToIps("fe80:0:982:2a5c:0:0:0:ffff/129")
+	t.Log(res)
+	assert.Equal(t, res, []string(nil))
+}
+
+func TestCidr6ToIpsClean(t *testing.T) {
+	res, _ := Cidr6ToIpsClean("fe80:0:982:2a5c:0:0:0:ffff/128")
+	t.Log(res)
+	assert.Equal(t, res, []string(nil))
+}
+
+func TestCidr6ToIpsClean1(t *testing.T) {
+	res, _ := Cidr6ToIpsClean("fe80:0:982:2a5c:0:0:0:ffff/127")
+	t.Log(res)
+	assert.Equal(t, res, []string{"fe80:0:982:2a5c:0:0:0:fffe"})
+}
+
+func TestCidr6ToIpsClean2(t *testing.T) {
+	res, _ := Cidr6ToIpsClean("fe80:0:982:2a5c:0:0:0:0/127")
+	t.Log(res)
+	assert.Equal(t, len(res), 1)
+}
+
+func TestCidr6ToIpsCleanErr(t *testing.T) {
+	res, _ := Cidr6ToIpsClean("1fe80:0:982:2a5c:0:0:0:ffff/322")
+	t.Log(res)
+	assert.Equal(t, res, []string(nil))
+}
+
+func TestCidr6ToIpsCleanErr2(t *testing.T) {
+	res, _ := Cidr6ToIpsClean("fe80:0:982:2a5c:0:0:0:ffff/322")
+	t.Log(res)
+	assert.Equal(t, res, []string(nil))
+}
+
+func TestCidr6ToIpsCleanErr3(t *testing.T) {
+	res, _ := Cidr6ToIpsClean("fe80:0:982:2a5c:0:0:0:ffff/128")
+	t.Log(res)
+	assert.Equal(t, res, []string(nil))
 }
